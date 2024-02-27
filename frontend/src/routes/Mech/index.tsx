@@ -63,13 +63,12 @@ const Mech: React.FC = () => {
         {isLoading && <Loading />}
         {!error && !isLoading && nft && mechAddress && (
           <>
-            <NFTItem nft={nft} chainId={chain.id} />
-
             <ProvideWalletConnect
               chainId={chain.id}
               mechAddress={mechAddress}
               onRequest={handleRequest}
             >
+              <NFTItem nft={nft} chainId={chain.id} />
               {deployed && <MechConnect />}
               {!deployed && (
                 <MechDeploy deploy={deploy} deployPending={deployPending} />

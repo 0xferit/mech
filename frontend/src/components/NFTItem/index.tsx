@@ -2,18 +2,22 @@ import classes from "./NFTItem.module.css"
 import { shortenAddress } from "../../utils/shortenAddress"
 import copy from "copy-to-clipboard"
 import clsx from "clsx"
-
 import useTokenBalances from "../../hooks/useTokenBalances"
 import Loading from "../Loading"
 import { useDeployMech } from "../../hooks/useDeployMech"
-
 import { calculateMechAddress } from "../../utils/calculateMechAddress"
-import { formatUnits } from "viem"
-import { MoralisNFT } from "../../types/Token"
+import { formatUnits, parseUnits } from "viem"
 import { getNFTContext } from "../../utils/getNFTContext"
 import { AccountNftGrid } from "../NFTGrid"
 import NFTMedia from "../NFTMedia"
 import { Link } from "react-router-dom"
+import React from "react"
+import { MoralisFungible, MoralisNFT } from "../../types/Token"
+import { ethers } from "ethers"
+import { makeExecuteTransaction } from "mech-sdk"
+import { usePublicClient, useWalletClient } from "wagmi"
+import ERC20TransferForm from "../ERC20TransferForm"
+import { HexedecimalString } from "../../types/common"
 
 interface Props {
   nft: MoralisNFT
@@ -38,6 +42,48 @@ const NFTItem: React.FC<Props> = ({ nft, chainId }) => {
   const { deployed } = useDeployMech(getNFTContext(nft), chainId)
   const metadata = JSON.parse(nft.metadata || "{}")
   const name = nft.name || metadata?.name || "..."
+
+  const publicClient = usePublicClient({ chainId })
+  const { data: walletClient } = useWalletClient({ chainId })
+
+  const handleERC20Transfer = async (
+    ERC20TransferToken: Pick<MoralisFungible, "token_address" | "decimals">,
+    ERC20TransferTarget: HexedecimalString,
+    ERC20TransferAmount: string
+  ) => {
+    // Create the data for the ERC20 transfer
+    const ERC20Transfer = new ethers.Interface([
+      "function transfer(address recipient, uint256 amount) public returns (bool)",
+    ])
+    const erc_data = ERC20Transfer.encodeFunctionData(
+      "transfer(address,uint256)",
+      [
+        ERC20TransferTarget,
+        parseUnits(ERC20TransferAmount, ERC20TransferToken.decimals),
+      ]
+    )
+
+    const transaction = makeExecuteTransaction(mechAddress, {
+      to: ERC20TransferToken.token_address as HexedecimalString,
+      data: erc_data as HexedecimalString,
+    })
+
+    try {
+      if (!walletClient) {
+        console.error("Wallet client not initialized!")
+        return
+      }
+      const hash = await walletClient.sendTransaction(transaction)
+      console.log("Transaction sent:", hash)
+
+      // Wait for the transaction to be mined
+      const receipt = await publicClient.waitForTransactionReceipt({ hash })
+      console.log("Transaction confirmed:", receipt.transactionHash)
+    } catch (error) {
+      console.error("Error executing transaction:", error)
+    }
+  }
+
   return (
     <div className={classes.itemContainer}>
       <div className={classes.header}>
@@ -131,6 +177,12 @@ const NFTItem: React.FC<Props> = ({ nft, chainId }) => {
               </div>
             </li>
           ))}
+          <ERC20TransferForm
+            chainId={chainId}
+            operatorAddress={operatorAddress as HexedecimalString}
+            mechErc20Balances={mechErc20Balances}
+            handleERC20Transfer={handleERC20Transfer}
+          />
         </ul>
       </div>
       <label>NFTs</label>
