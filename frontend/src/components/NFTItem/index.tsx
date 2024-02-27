@@ -31,10 +31,10 @@ const NFTItem: React.FC<Props> = ({ nft, chainId }) => {
   const {
     data,
     isLoading: mechBalancesLoading,
-    error: mechBalancesError
+    error: mechBalancesError,
   } = useTokenBalances({
     accountAddress: mechAddress,
-    chainId
+    chainId,
   })
 
   const mechNativeBalance = data ? data.native : null
@@ -44,20 +44,28 @@ const NFTItem: React.FC<Props> = ({ nft, chainId }) => {
   const name = nft.name || metadata?.name || "..."
 
   const publicClient = usePublicClient({ chainId })
-  const { data: walletClient }
-    = useWalletClient({ chainId })
+  const { data: walletClient } = useWalletClient({ chainId })
 
-  const handleERC20Transfer = async (ERC20TransferToken: Pick<MoralisFungible, "token_address" | "decimals">, ERC20TransferTarget: HexedecimalString, ERC20TransferAmount: string) => {
+  const handleERC20Transfer = async (
+    ERC20TransferToken: Pick<MoralisFungible, "token_address" | "decimals">,
+    ERC20TransferTarget: HexedecimalString,
+    ERC20TransferAmount: string
+  ) => {
     // Create the data for the ERC20 transfer
-    const ERC20Transfer = new ethers.Interface(["function transfer(address recipient, uint256 amount) public returns (bool)"])
-    const erc_data = ERC20Transfer.encodeFunctionData("transfer(address,uint256)", [
-      ERC20TransferTarget,
-      parseUnits(ERC20TransferAmount, ERC20TransferToken.decimals)
+    const ERC20Transfer = new ethers.Interface([
+      "function transfer(address recipient, uint256 amount) public returns (bool)",
     ])
+    const erc_data = ERC20Transfer.encodeFunctionData(
+      "transfer(address,uint256)",
+      [
+        ERC20TransferTarget,
+        parseUnits(ERC20TransferAmount, ERC20TransferToken.decimals),
+      ]
+    )
 
     const transaction = makeExecuteTransaction(mechAddress, {
       to: ERC20TransferToken.token_address as HexedecimalString,
-      data: erc_data as HexedecimalString
+      data: erc_data as HexedecimalString,
     })
 
     try {
@@ -71,7 +79,6 @@ const NFTItem: React.FC<Props> = ({ nft, chainId }) => {
       // Wait for the transaction to be mined
       const receipt = await publicClient.waitForTransactionReceipt({ hash })
       console.log("Transaction confirmed:", receipt.transactionHash)
-
     } catch (error) {
       console.error("Error executing transaction:", error)
     }
@@ -121,7 +128,7 @@ const NFTItem: React.FC<Props> = ({ nft, chainId }) => {
             <label>Operator</label>
             <div
               className={clsx(classes.infoItem, {
-                [classes.address]: !!operatorAddress
+                [classes.address]: !!operatorAddress,
               })}
               onClick={
                 operatorAddress ? () => copy(operatorAddress) : undefined
@@ -170,10 +177,12 @@ const NFTItem: React.FC<Props> = ({ nft, chainId }) => {
               </div>
             </li>
           ))}
-          <ERC20TransferForm chainId={chainId}
-                             operatorAddress={operatorAddress as HexedecimalString}
-                             mechAddress={mechAddress} mechErc20Balances={mechErc20Balances}
-                             handleERC20Transfer={handleERC20Transfer} />
+          <ERC20TransferForm
+            chainId={chainId}
+            operatorAddress={operatorAddress as HexedecimalString}
+            mechErc20Balances={mechErc20Balances}
+            handleERC20Transfer={handleERC20Transfer}
+          />
         </ul>
       </div>
       <label>NFTs</label>

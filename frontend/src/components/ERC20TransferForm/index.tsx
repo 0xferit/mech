@@ -9,7 +9,6 @@ import { HexedecimalString } from "../../types/common"
 interface ERC20TransferFormProps {
   chainId: number
   operatorAddress: HexedecimalString
-  mechAddress: string
   mechErc20Balances: MoralisFungible[]
   handleERC20Transfer: (
     ERC20TransferToken: Pick<
@@ -28,7 +27,6 @@ const getStepSize = (decimals: number | undefined) => {
 const ERC20TransferForm: React.FC<ERC20TransferFormProps> = ({
   chainId,
   operatorAddress,
-  mechAddress,
   mechErc20Balances,
   handleERC20Transfer,
 }) => {
