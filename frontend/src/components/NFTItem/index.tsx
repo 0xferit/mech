@@ -47,7 +47,7 @@ const NFTItem: React.FC<Props> = ({ nft, chainId }) => {
   const { data: walletClient }
     = useWalletClient({ chainId })
 
-  const handleERC20Transfer = async (ERC20TransferToken: MoralisFungible, ERC20TransferTarget: HexedecimalString, ERC20TransferAmount: string) => {
+  const handleERC20Transfer = async (ERC20TransferToken: Pick<MoralisFungible, "token_address" | "decimals">, ERC20TransferTarget: HexedecimalString, ERC20TransferAmount: string) => {
     // Create the data for the ERC20 transfer
     const ERC20Transfer = new ethers.Interface(["function transfer(address recipient, uint256 amount) public returns (bool)"])
     const erc_data = ERC20Transfer.encodeFunctionData("transfer(address,uint256)", [

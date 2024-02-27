@@ -11,7 +11,7 @@ interface ERC20TransferFormProps {
   operatorAddress: HexedecimalString
   mechAddress: string
   mechErc20Balances: MoralisFungible[]
-  handleERC20Transfer: (ERC20TransferToken: MoralisFungible, ERC20TransferTarget: HexedecimalString, ERC20TransferAmount: string) => Promise<void>
+  handleERC20Transfer: (ERC20TransferToken:  Pick<MoralisFungible, "token_address" | "decimals">, ERC20TransferTarget: HexedecimalString, ERC20TransferAmount: string) => Promise<void>
 }
 
 const ERC20TransferForm: React.FC<ERC20TransferFormProps> = ({
@@ -23,7 +23,7 @@ const ERC20TransferForm: React.FC<ERC20TransferFormProps> = ({
                                                              }) => {
   const [ERC20TransferTarget, setERC20TransferTarget] = useState(operatorAddress as HexedecimalString)
   const [ERC20TransferAmount, setERC20TransferAmount] = useState("1")
-  const [ERC20TransferToken, setERC20TransferToken] = useState<MoralisFungible>()
+  const [ERC20TransferToken, setERC20TransferToken] = useState<Pick<MoralisFungible, "token_address" | "decimals">>()
   const [isFormValid, setIsFormValid] = useState(false)
 
   const { data: walletClient } = useWalletClient({ chainId })
