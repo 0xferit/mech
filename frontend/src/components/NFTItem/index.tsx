@@ -2,25 +2,22 @@ import classes from "./NFTItem.module.css"
 import { shortenAddress } from "../../utils/shortenAddress"
 import copy from "copy-to-clipboard"
 import clsx from "clsx"
-
 import useTokenBalances from "../../hooks/useTokenBalances"
 import Loading from "../Loading"
 import { useDeployMech } from "../../hooks/useDeployMech"
-
 import { calculateMechAddress } from "../../utils/calculateMechAddress"
 import { formatUnits, parseUnits } from "viem"
-import { MoralisNFT } from "../../types/Token"
 import { getNFTContext } from "../../utils/getNFTContext"
 import { AccountNftGrid } from "../NFTGrid"
 import NFTMedia from "../NFTMedia"
 import { Link } from "react-router-dom"
-import React, { ChangeEvent, useEffect, useState } from "react"
-
+import React from "react"
+import { MoralisFungible, MoralisNFT } from "../../types/Token"
 import { ethers } from "ethers"
 import { makeExecuteTransaction } from "mech-sdk"
 import { usePublicClient, useWalletClient } from "wagmi"
-
-type HexedecimalString = `0x${string}`;
+import ERC20TransferForm from "../ERC20TransferForm"
+import { HexedecimalString } from "../../types/common"
 
 interface Props {
   nft: MoralisNFT
@@ -46,39 +43,12 @@ const NFTItem: React.FC<Props> = ({ nft, chainId }) => {
   const metadata = JSON.parse(nft.metadata || "{}")
   const name = nft.name || metadata?.name || "..."
 
-  const [ERC20TransferTarget, setERC20TransferTarget] = useState<HexedecimalString>(operatorAddress as HexedecimalString)
-  const [ERC20TransferAmount, setERC20TransferAmount] = useState("1")
-  const [ERC20TransferToken, setERC20TransferToken] = useState<{ address: HexedecimalString, decimals: number }>({
-    address: ethers.ZeroAddress as HexedecimalString,
-    decimals: 0
-  })
-  const [isFormValid, setIsFormValid] = useState(false)
   const publicClient = usePublicClient({ chainId })
   const { data: walletClient }
     = useWalletClient({ chainId })
 
-  const handleERC20TransferTokenChange = (
-    e: ChangeEvent<HTMLSelectElement>
-  ) => {
-    const { value: tokenAddress } = e.target
-    setERC20TransferToken({
-      address: tokenAddress as HexedecimalString,
-      decimals: mechErc20Balances.find(b => b.token_address === tokenAddress)?.decimals! || 18
-    })
-  }
 
-  useEffect(() => {
-    const isAddressValid = ethers.isAddress(ERC20TransferTarget)
-    const isAmountValid = Number(ERC20TransferAmount) > 0
-      && parseUnits(ERC20TransferAmount, ERC20TransferToken.decimals)
-      <= Number(mechErc20Balances.find(b => b.token_address === ERC20TransferToken.address)?.balance)
-    const isTokenValid = ERC20TransferToken.address.trim() !== "" && ERC20TransferToken.address !== ethers.ZeroAddress
-
-    setIsFormValid(isAddressValid && isAmountValid && isTokenValid && walletClient !== undefined)
-  }, [ERC20TransferTarget, ERC20TransferAmount, ERC20TransferToken, walletClient])
-
-
-  const handleERC20Transfer = async () => {
+  const handleERC20Transfer = async (ERC20TransferToken: MoralisFungible, ERC20TransferTarget: HexedecimalString, ERC20TransferAmount: string) => {
     // Create the data for the ERC20 transfer
     const ERC20Transfer = new ethers.Interface(["function transfer(address recipient, uint256 amount) public returns (bool)"])
     const erc_data = ERC20Transfer.encodeFunctionData("transfer(address,uint256)", [
@@ -87,7 +57,7 @@ const NFTItem: React.FC<Props> = ({ nft, chainId }) => {
     ])
 
     const transaction = makeExecuteTransaction(mechAddress, {
-      to: ERC20TransferToken.address,
+      to: ERC20TransferToken.token_address as HexedecimalString,
       data: erc_data as HexedecimalString
     })
 
@@ -201,52 +171,10 @@ const NFTItem: React.FC<Props> = ({ nft, chainId }) => {
               </div>
             </li>
           ))}
-          <form onSubmit={handleERC20Transfer}>
-            <div>
-              <label htmlFor="ERC20TransferTarget">Send to:</label>
-              <input
-                type="text"
-                id="ERC20TransferTarget"
-                name="ERC20TransferTarget"
-                placeholder="Enter recipient address"
-                value={ERC20TransferTarget}
-                onChange={e => setERC20TransferTarget(e.target.value as HexedecimalString)}
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="ERC20TransferAmount">Amount:</label>
-              <input
-                type="number"
-                id="ERC20TransferAmount"
-                name="ERC20TransferAmount"
-                placeholder="Enter amount"
-                value={ERC20TransferAmount}
-                onChange={e => setERC20TransferAmount(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="ERC20TransferToken">Select token:</label>
-              <select
-                id="ERC20TransferToken"
-                name="ERC20TransferToken"
-                value={ERC20TransferToken.address}
-                onChange={handleERC20TransferTokenChange}
-                required
-              >
-                <option value="">--Please select a token--</option>
-                {mechErc20Balances.map((token, index) => (
-                  <option key={index} value={token.token_address}>
-                    {token.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button type="button" onClick={handleERC20Transfer} disabled={!isFormValid}>
-              Send
-            </button>
-          </form>
+          <ERC20TransferForm chainId={chainId}
+                             operatorAddress={operatorAddress as HexedecimalString}
+                             mechAddress={mechAddress} mechErc20Balances={mechErc20Balances}
+                             handleERC20Transfer={handleERC20Transfer}/>
         </ul>
       </div>
       <label>NFTs</label>
