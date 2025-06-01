@@ -20,7 +20,7 @@ const useCollection = ({ tokenAddress, chainId, page = 0 }: Props) => {
         ["cursor", pageParam],
         ["media_items", "true"],
       ])
-      // get collection metadata
+      // get collection Metadata
       const nftRes = await fetch(
         `${
           process.env.REACT_APP_PROXY_URL
